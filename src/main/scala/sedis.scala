@@ -2,12 +2,12 @@ package org.sedis
 
 import redis.clients.jedis._
 
-trait Dress { 
-  implicit def delegateToJedis(d: Wrap) = d.j 
-  
-  implicit def fromJedistoScala(j: JedisCommands) = up(j) 
+trait Dress {
+  implicit def delegateToJedis(d: Wrap) = d.j
 
-  class Wrap(val j: JedisCommands) {
+  implicit def fromJedistoScala(j: Jedis) = up(j)
+
+  class Wrap(val j: Jedis) {
     import collection.JavaConverters._
 
     def hmset(key: String, values: Map[String, String]) = {
@@ -20,11 +20,11 @@ trait Dress {
     def smembers(key: String):Set[String] = {
       j.smembers(key).asScala.toSet
     }
-   
+
     def hkeys(key: String): Set[String] = {
       j.hkeys(key).asScala.toSet
     }
-    
+
     def hvals(key: String): List[String] = {
       j.hvals(key).asScala.toList
     }
@@ -42,9 +42,9 @@ trait Dress {
     def sort(key: String):List[String] = {
       j.sort(key).asScala.toList
     }
-    
+
   }
-  def up(j: JedisCommands) = new Wrap(j)
+  def up(j: Jedis) = new Wrap(j)
 }
 object Dress extends Dress
 
@@ -58,7 +58,7 @@ class Pool(val underlying: JedisPool) {
       underlying.returnResource(jedis)
     }
   }
-  def withJedisClient[T](body: JedisCommands => T) = {
+  def withJedisClient[T](body: Jedis => T) = {
     val jedis = underlying.getResource
     try {
       body(jedis)
